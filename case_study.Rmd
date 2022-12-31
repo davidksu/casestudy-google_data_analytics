@@ -1,0 +1,244 @@
+---
+title: "cyclistic_data_preperation"
+author: "David Lincoln"
+date: "2022-12-28"
+output: html_document
+---
+
+#setup 
+```{r setup}
+install.packages("tidyverse")
+install.packages("janitor")
+install.packages("lubridate")
+install.packages("readr")
+install.packages("dplyr")
+install.packages("ggplot2")
+install.packages("scales")
+
+
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(scales)
+```
+
+```{r cyclistic_dataset}
+df1 <- read_csv("~/Desktop/case_study_1/2020_05.csv")
+df2 <- read_csv("~/Desktop/case_study_1/2020_06.csv")
+df3 <- read_csv("~/Desktop/case_study_1/2020_07.csv")
+df4 <- read_csv("~/Desktop/case_study_1/2020_08.csv")
+df5 <- read_csv("~/Desktop/case_study_1/2020_09.csv")
+df6 <- read_csv("~/Desktop/case_study_1/2020_10.csv")
+df7 <- read_csv("~/Desktop/case_study_1/2020_11.csv")
+df8 <- read_csv("~/Desktop/case_study_1/2020_12.csv")
+df9 <- read_csv("~/Desktop/case_study_1/2021_01.csv")
+df10 <- read_csv("~/Desktop/case_study_1/2021_02.csv")
+df11 <- read_csv("~/Desktop/case_study_1/2021_03.csv")
+df12 <- read_csv("~/Desktop/case_study_1/2021_04.csv")
+
+#check data structure
+str(df1)
+str(df2)
+str(df3)
+str(df4)
+str(df5)
+str(df6)
+str(df7)
+str(df8)
+str(df9)
+str(df10)
+str(df11)
+str(df12)
+
+#datasets df1 through df7 had start_station_id, and end_station_id as 'num' when it shoudld be 'chr 
+
+#changing string type 
+
+df1 <- mutate(
+  df1, 
+  start_station_id = as.character(start_station_id),
+  end_station_id = as.character(end_station_id)
+  )
+
+df2 <- mutate(
+  df2, 
+  start_station_id = as.character(start_station_id),
+  end_station_id = as.character(end_station_id)
+  )
+df3 <- mutate(
+  df3, 
+  start_station_id = as.character(start_station_id),
+  end_station_id = as.character(end_station_id)
+  )
+df4 <- mutate(
+  df4, 
+  start_station_id = as.character(start_station_id),
+  end_station_id = as.character(end_station_id)
+  )
+df5 <- mutate(
+  df5, 
+  start_station_id = as.character(start_station_id),
+  end_station_id = as.character(end_station_id)
+  )
+df6 <- mutate(
+  df6, 
+  start_station_id = as.character(start_station_id),
+  end_station_id = as.character(end_station_id)
+  )
+df7 <- mutate(
+  df7, 
+  start_station_id = as.character(start_station_id),
+  end_station_id = as.character(end_station_id)
+  )
+
+#merge dataset
+cyclistic_df <- rbind(df1,df2,df3,df4,df5,df6,df7,df8,df9,df10,df11,df12)
+dim(cyclistic_df)
+str(cyclistic_df) 
+
+#check for blank rows, & blank columns
+cyclistic_df <- janitor::remove_empty(cyclistic_df, which = c("cols"))
+cyclistic_df <- janitor::remove_empty(cyclistic_df, which = c("rows"))
+dim(cyclistic_df)
+# no changes 
+
+#change started_at string type
+cyclistic_df$started_at <- as.POSIXct(
+ cyclistic_df$started_at, 
+  format = "%Y-%m-%d %H:%M:%S"
+  )
+
+#change ended_at string type 
+cyclistic_df$ended_at <- as.POSIXct(
+ cyclistic_df$ended_at, 
+  format = "%Y-%m-%d %H:%M:%S"
+  )
+
+# Order by date 
+cyclistic_df <- cyclistic_df %>%
+  arrange(started_at)
+
+# Year 
+cyclistic_df$year <- format(
+    cyclistic_df$started_at, 
+    "%Y"
+    )
+# Month 
+cyclistic_df$month <- format(
+    cyclistic_df$started_at, 
+    "%m"
+    )
+# Week 
+cyclistic_df$week <- format(
+cyclistic_df$started_at,
+  "%W"
+  )
+# Day
+cyclistic_df$day <- format(
+  cyclistic_df$started_at, 
+  "%d"
+  )
+# Day of week 
+cyclistic_df$day_of_week <- format(
+  cyclistic_df$started_at, 
+  "%A"
+  )
+# Date, YYYY-MM-DD
+cyclistic_df$YMD <- format(
+  cyclistic_df$started_at, 
+  "%Y-%m-%d"
+  )
+# Time of Day, HH:MM:SS
+cyclistic_df$ToD <- format(
+  cyclistic_df$started_at, 
+  "%H:%M:%S"
+  )
+
+#ride_length
+
+# Calculate time difference in seconds 
+cyclistic_df$ride_length <- difftime(
+  cyclistic_df$ended_at, 
+  cyclistic_df$started_at,
+  units = "secs"
+  ) 
+# Change string type to numeric 
+cyclistic_df$ride_length <- as.numeric(
+  as.character(cyclistic_df$ride_length)
+  )
+```
+#data cleanning 
+```{r data cleaning}
+# Remove ride lengths < 0
+cyclistic_df_cleaned <- cyclistic_df %>%
+  filter(!(ride_length < 0))
+
+# Remove start_station_name and end_station_name blank results 
+cyclistic_df_cleaned <- cyclistic_df %>%
+    filter(
+      !(is.na(start_station_name) |
+          start_station_name == "")
+      ) %>% 
+  
+  filter(
+    !(is.na(end_station_name) |
+        end_station_name == "")
+    )
+
+# Create a data frame to check if capitalized station names are test rides 
+cyclistic_df_cleaned <- cyclistic_df %>%
+  
+  filter(
+    str_detect(start_station_name, "[:upper:]")
+    & !str_detect(start_station_name,"[:lower:]")
+    ) %>%
+  
+  group_by(
+    start_station_name
+    ) %>%
+  
+  count(
+    start_station_name
+    )
+# Create a data frame to check that there are no duplicates 
+rideable_type_check <- cyclistic_df_cleaned %>%
+  count(ride_id) %>%
+  filter(n > 1)
+
+unique(cyclistic_df_cleaned$rideable_type)
+
+# Create a data frame to see when a unique bike type was added to the dataset
+rideable_type_check <-cylistic_df_cleaned %>%
+  
+  mutate(
+    year = year(started_at), 
+    month = month(started_at)
+    ) %>%
+  
+  group_by(
+    month, 
+    year
+    ) %>%
+  
+  select(
+    rideable_type, 
+    month, 
+    year
+    ) %>%
+  
+  count(
+    rideable_type
+    )
+
+# Create a data frame which lists the unique station names 
+station_name_check <- cyclistic_df_cleaned %>%
+  group_by(start_station_name) %>%
+  count(start_station_name) 
+
+
+write_csv(cyclistic_df,"Cyclistic_cleaned_v2.csv")
+```
+
